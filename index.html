@@ -794,7 +794,8 @@ async function renderLoginScreen(){
   try{
     setupDoc = await db.collection('meta').doc('setup').get();
   }catch(e){
-    countHint.textContent = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ Firebase ໄດ້ — ກວດສອບ firebaseConfig ແລະ Firestore rules';
+    console.error('Firestore setup-check error:', e);
+    countHint.textContent = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ Firebase ໄດ້ — [' + (e.code||'no-code') + '] ' + (e.message||e);
     setupForm.style.display='none'; loginWrap.style.display='block';
     return;
   }
