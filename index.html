@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+  @font-face{
+    font-family:'Phetsarath OT';
+    src: local('Phetsarath OT'), local('PhetsarathOT'), local('Phetsarath');
+    font-weight: normal;
+  }
+  :root{
+    --paper:#F1EEE4;
+    --paper-2:#E9E4D4;
+    --line:#D9D0B8;
+    --ink:#232C2B;
+    --ink-soft:#5B655F;
+    --ink-faint:#8A9088;
+    --brass:#A6772F;
+    --brass-dark:#8A611F;
+    --teal:#2F5D57;
+    --teal-dark:#20423E;
+    --teal-tint:#DEE7E4;
+    --income:#3C7A5B;
+    --income-tint:#E1EDE6;
+    --expense:#AE4A3A;
+    --expense-tint:#F1E2DE;
+    --danger:#AE4A3A;
+    --radius:3px;
+    --shadow:0 1px 2px rgba(35,44,43,.08);
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Phetsarath OT','Noto Sans Lao',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  input,select,button,textarea{font-family:inherit;font-size:1rem;}
+  button{cursor:pointer;}
+  .num{font-variant-numeric:tabular-nums;}
+  ::selection{background:var(--brass);color:#fff;}
+
+  /* ---------- Login screen ---------- */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%;
+    max-width:380px;
+    background:var(--paper);
+    border-top:3px solid var(--brass);
+    padding:36px 30px 30px;
+    box-shadow:var(--shadow);
+  }
+  .login-brand{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  .login-brand .mark{
+    font-size:2.1rem;
+    color:var(--teal-dark);
+    font-weight:700;
+    line-height:1.15;
+  }
+  .login-brand .sub{
+    color:var(--ink-soft);
+    font-size:.92rem;
+    margin-top:6px;
+  }
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-size:.88rem;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:var(--radius);
+    color:var(--ink);
+  }
+  .field input:focus, .field select:focus, button:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:10px 18px;
+    border:none;
+    border-radius:var(--radius);
+    background:var(--teal);
+    color:#fff;
+    font-weight:600;
+    transition:background .15s ease;
+  }
+  .btn:hover{background:var(--teal-dark);}
+  .btn.block{width:100%;}
+  .btn.brass{background:var(--brass);}
+  .btn.brass:hover{background:var(--brass-dark);}
+  .btn.ghost{background:transparent;color:var(--teal-dark);border:1px solid var(--line);}
+  .btn.ghost:hover{background:var(--teal-tint);}
+  .btn.danger{background:var(--expense);}
+  .btn.danger:hover{background:#8f382a;}
+  .btn.sm{padding:6px 12px;font-size:.85rem;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .error-msg{
+    background:var(--expense-tint);
+    color:var(--expense);
+    border-left:3px solid var(--expense);
+    padding:8px 12px;
+    font-size:.88rem;
+    margin-bottom:14px;
+    border-radius:2px;
+  }
+  .hint-msg{
+    color:var(--ink-faint);
+    font-size:.82rem;
+    margin-top:14px;
+    text-align:center;
+  }
+  .login-userlist{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .user-chip{
+    padding:6px 14px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    font-size:.85rem;
+    background:#fff;
+    color:var(--ink-soft);
+  }
+  .user-chip.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+  /* ---------- App shell ---------- */
+  #app{display:none;min-height:100vh;}
+  #app.show{display:flex;}
+  .sidebar{
+    width:220px;
+    flex-shrink:0;
+    background:var(--paper-2);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    padding:22px 0;
+  }
+  .brand-row{
+    padding:0 22px 20px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:14px;
+  }
+  .brand-row .mark{font-weight:700;color:var(--teal-dark);font-size:1.15rem;line-height:1.3;}
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 22px;
+    color:var(--ink-soft);
+    font-size:.95rem;
+    border-left:3px solid transparent;
+    cursor:pointer;
+  }
+  .nav-item:hover{background:rgba(47,93,87,.06);}
+  .nav-item.active{
+    color:var(--teal-dark);
+    font-weight:600;
+    border-left-color:var(--brass);
+    background:rgba(47,93,87,.08);
+  }
+  .nav-ico{width:18px;text-align:center;}
+  .sidebar-footer{
+    margin-top:auto;
+    padding:14px 22px 0;
+    border-top:1px solid var(--line);
+  }
+  .who{font-size:.85rem;color:var(--ink-soft);margin-bottom:8px;}
+  .who b{color:var(--ink);}
+
+  .main{flex:1;min-width:0;padding:28px 34px 90px;overflow-y:auto;}
+  .page-title{font-size:1.5rem;font-weight:700;color:var(--teal-dark);margin:0 0 4px;}
+  .page-sub{color:var(--ink-soft);font-size:.92rem;margin:0 0 24px;}
+
+  .topbar-mobile{display:none;}
+
+  /* ---------- ledger-style structural elements ---------- */
+  .rule{border:none;border-top:1px solid var(--line);margin:18px 0;}
+  .stat-row{
+    display:flex;
+    gap:0;
+    border-top:1px solid var(--ink);
+    border-bottom:1px solid var(--line);
+    margin-bottom:26px;
+    flex-wrap:wrap;
+  }
+  .stat{
+    flex:1;
+    min-width:160px;
+    padding:16px 20px;
+    border-right:1px solid var(--line);
+  }
+  .stat:last-child{border-right:none;}
+  .stat .label{font-size:.82rem;color:var(--ink-soft);margin-bottom:6px;}
+  .stat .value{font-size:1.6rem;font-weight:700;}
+  .stat .value.income{color:var(--income);}
+  .stat .value.expense{color:var(--expense);}
+  .stat .value.balance{color:var(--teal-dark);}
+
+  .panel{margin-bottom:30px;}
+  .panel-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  .panel-head h3{font-size:1.05rem;margin:0;color:var(--teal-dark);}
+  .controls-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .controls-row select, .controls-row input{
+    padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);background:#fff;
+  }
+
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    text-align:left;
+    font-size:.82rem;
+    color:var(--ink-soft);
+    font-weight:600;
+    padding:8px 10px;
+    border-bottom:1px solid var(--ink);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th.num-col{text-align:right;}
+  thead th .arrow{opacity:.4;font-size:.75em;margin-left:3px;}
+  thead th.sorted .arrow{opacity:1;color:var(--brass);}
+  tbody td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    font-size:.92rem;
+  }
+  tbody td.num-col{text-align:right;}
+  tbody tr:hover{background:rgba(166,119,47,.06);}
+  .tag{
+    display:inline-block;
+    padding:2px 9px;
+    border-radius:20px;
+    font-size:.78rem;
+    font-weight:600;
+  }
+  .tag.income{background:var(--income-tint);color:var(--income);}
+  .tag.expense{background:var(--expense-tint);color:var(--expense);}
+  .row-actions a{color:var(--ink-faint);font-size:.85rem;margin-right:10px;cursor:pointer;}
+  .row-actions a:hover{color:var(--teal-dark);}
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--ink-faint);
+    border:1px dashed var(--line);
+  }
+  .foot-total{font-weight:700;border-top:2px solid var(--ink);}
+
+  .bar-list .bar-item{margin-bottom:12px;}
+  .bar-item .bi-top{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px;}
+  .bar-item .bi-track{height:7px;background:var(--paper-2);border-radius:4px;overflow:hidden;}
+  .bar-item .bi-fill{height:100%;background:var(--teal);border-radius:4px;}
+  .bar-item .bi-fill.expense{background:var(--expense);}
+
+  .chart-wrap{position:relative;height:280px;}
+  .grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:26px;align-items:start;}
+
+  .form-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-top:3px solid var(--teal);
+    padding:22px;
+    max-width:520px;
+  }
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-grid .span2{grid-column:1/-1;}
+  .type-toggle{display:flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .type-toggle button{
+    flex:1;background:#fff;border:none;padding:9px;color:var(--ink-soft);font-weight:600;
+  }
+  .type-toggle button.active.income{background:var(--income);color:#fff;}
+  .type-toggle button.active.expense{background:var(--expense);color:#fff;}
+
+  .cat-columns{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+  .cat-block{background:#fff;border:1px solid var(--line);}
+  .cat-block-head{
+    padding:12px 16px;
+    font-weight:700;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .cat-block-head.income{color:var(--income);}
+  .cat-block-head.expense{color:var(--expense);}
+  .main-cat-item{border-bottom:1px solid var(--line);}
+  .main-cat-item:last-child{border-bottom:none;}
+  .mc-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 16px;font-weight:600;
+  }
+  .sub-list{padding:0 16px 12px 30px;}
+  .sub-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:5px 0;font-size:.9rem;color:var(--ink-soft);
+  }
+  .add-inline{display:flex;gap:8px;padding:10px 16px;}
+  .add-inline input{flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:var(--radius);}
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(35,44,43,.45);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{
+    background:var(--paper);max-width:420px;width:100%;padding:24px;
+    border-top:3px solid var(--brass);
+  }
+  .modal h4{margin:0 0 14px;color:var(--teal-dark);}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  .users-list{display:flex;flex-direction:column;gap:0;}
+  .user-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--line);
+  }
+  .user-row .u-name{font-weight:600;}
+  .user-row .u-meta{font-size:.82rem;color:var(--ink-faint);}
+
+  /* bottom nav (mobile) */
+  .bottom-nav{
+    display:none;
+    position:fixed;left:0;right:0;bottom:0;
+    background:var(--paper-2);border-top:1px solid var(--line);
+    justify-content:space-around;
+    padding:6px 0 max(6px, env(safe-area-inset-bottom));
+    z-index:40;
+  }
+  .bottom-nav .bn-item{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-size:.68rem;color:var(--ink-soft);padding:4px 8px;
+  }
+  .bottom-nav .bn-item .nav-ico{font-size:1.15rem;}
+  .bottom-nav .bn-item.active{color:var(--teal-dark);font-weight:700;}
+
+  @media (max-width:860px){
+    .sidebar{display:none;}
+    .main{padding:16px 16px 84px;}
+    .topbar-mobile{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:12px 4px 18px;border-bottom:1px solid var(--line);margin-bottom:18px;
+    }
+    .topbar-mobile .mark{font-weight:700;color:var(--teal-dark);}
+    .bottom-nav{display:flex;}
+    .grid-2{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .cat-columns{grid-template-columns:1fr;}
+    .stat-row{border-top:none;}
+    .stat{border-right:none;border-bottom:1px solid var(--line);flex:none;width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="mark">ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ</div>
+      <div class="sub" id="loginSubtitle">ເຂົ້າສູ່ລະບົບເພື່ອບັນທຶກ ແລະ ຕິດຕາມການເງິນ</div>
+    </div>
+
+    <div id="loginErrorBox"></div>
+
+    <!-- Normal login -->
+    <div id="loginFormWrap">
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginUsername">ຊື່ຜູ້ໃຊ້</label>
+          <input type="text" id="loginUsername" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">ລະຫັດຜ່ານ</label>
+          <input type="password" id="loginPassword" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn block">ເຂົ້າສູ່ລະບົບ</button>
+      </form>
+    </div>
+
+    <!-- First run setup -->
+    <form id="setupForm" style="display:none;">
+      <div class="field">
+        <label for="setupName">ຊື່ສະແດງ</label>
+        <input type="text" id="setupName" required>
+      </div>
+      <div class="field">
+        <label for="setupUsername">ຊື່ຜູ້ໃຊ້</label>
+        <input type="text" id="setupUsername" required>
+      </div>
+      <div class="field">
+        <label for="setupPassword">ລະຫັດຜ່ານ (ຢ່າງໜ້ອຍ 6 ຕົວ)</label>
+        <input type="password" id="setupPassword" minlength="6" required>
+      </div>
+      <button type="submit" class="btn brass block">ສ້າງບັນຊີຜູ້ດູແລ</button>
+      <div class="hint-msg">ນີ້ແມ່ນການຕັ້ງຄ່າຄັ້ງທຳອິດ. ຜູ້ໃຊ້ນີ້ຈະເປັນຜູ້ດູແລລະບົບ.</div>
+    </form>
+
+    <div class="hint-msg" id="loginCountHint"></div>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="brand-row"><div class="mark">ບັນຊີລາຍຮັບ<br>ລາຍຈ່າຍ</div></div>
+    <div class="nav-item" data-view="dashboard"><span class="nav-ico">&#9670;</span> ໜ້າຫຼັກ</div>
+    <div class="nav-item" data-view="transactions"><span class="nav-ico">&#9998;</span> ບັນທຶກລາຍການ</div>
+    <div class="nav-item" data-view="categories"><span class="nav-ico">&#9776;</span> ໝວດໝູ່</div>
+    <div class="nav-item" data-view="reports"><span class="nav-ico">&#9783;</span> ລາຍງານ</div>
+    <div class="nav-item" data-view="users"><span class="nav-ico">&#9822;</span> ຜູ້ໃຊ້</div>
+    <div class="sidebar-footer">
+      <div class="who">ຜູ້ໃຊ້ງານ: <b id="whoName">-</b></div>
+      <button class="btn ghost sm block" id="logoutBtn">ອອກຈາກລະບົບ</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar-mobile">
+      <div class="mark">ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ</div>
+      <button class="btn ghost sm" id="logoutBtnMobile">ອອກ</button>
+    </div>
+
+    <!-- ---- DASHBOARD ---- -->
+    <section id="view-dashboard" class="view">
+      <h1 class="page-title">ໜ້າຫຼັກ</h1>
+      <p class="page-sub">ພາບລວມການເງິນ ປະຈຳເດືອນ ແລະ ປະຈຳປີ</p>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>ພາບລວມປະຈຳເດືອນ</h3>
+          <div class="controls-row">
+            <select id="dashMonth"></select>
+            <select id="dashYear"></select>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">ລາຍຮັບລວມ</div><div class="value income num" id="dashMonthIncome">0</div></div>
+          <div class="stat"><div class="label">ລາຍຈ່າຍລວມ</div><div class="value expense num" id="dashMonthExpense">0</div></div>
+          <div class="stat"><div class="label">ຍອດຄົງເຫຼືອ</div><div class="value balance num" id="dashMonthBalance">0</div></div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <h3 style="font-size:.95rem;color:var(--ink-soft);margin:0 0 12px;">ລາຍຈ່າຍຕາມໝວດໝູ່ (ເດືອນນີ້)</h3>
+            <div class="bar-list" id="dashMonthCatBars"><div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div></div>
+          </div>
+          <div>
+            <h3 style="font-size:.95rem;color:var(--ink-soft);margin:0 0 12px;">ແນວໂນ້ມ 6 ເດືອນຫຼ້າສຸດ</h3>
+            <div class="chart-wrap"><canvas id="dashTrendChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="rule">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>ພາບລວມປະຈຳປີ</h3>
+          <div class="controls-row"><select id="dashYearOnly"></select></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="label">ລາຍຮັບລວມທັງປີ</div><div class="value income num" id="dashYearIncome">0</div></div>
+          <div class="stat"><div class="label">ລາຍຈ່າຍລວມທັງປີ</div><div class="value expense num" id="dashYearExpense">0</div></div>
+          <div class="stat"><div class="label">ຍອດຄົງເຫຼືອທັງປີ</div><div class="value balance num" id="dashYearBalance">0</div></div>
+        </div>
+        <div class="chart-wrap" style="height:300px;"><canvas id="dashYearChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ---- TRANSACTIONS (record) ---- -->
+    <section id="view-transactions" class="view" style="display:none;">
+      <h1 class="page-title">ບັນທຶກລາຍການ</h1>
+      <p class="page-sub">ບັນທຶກລາຍຮັບ ຫຼື ລາຍຈ່າຍໃໝ່</p>
+
+      <div class="form-card">
+        <form id="txForm">
+          <input type="hidden" id="txEditId">
+          <div class="field">
+            <label>ປະເພດ</label>
+            <div class="type-toggle">
+              <button type="button" data-type="income" id="typeIncomeBtn">ລາຍຮັບ</button>
+              <button type="button" data-type="expense" id="typeExpenseBtn">ລາຍຈ່າຍ</button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="txDate">ວັນທີ</label>
+              <input type="date" id="txDate" required>
+            </div>
+            <div class="field">
+              <label for="txAmount">ຈຳນວນເງິນ (ກີບ)</label>
+              <input type="number" id="txAmount" min="0" step="1" required>
+            </div>
+            <div class="field">
+              <label for="txMainCat">ໝວດໝູ່ຫຼັກ</label>
+              <select id="txMainCat" required></select>
+            </div>
+            <div class="field">
+              <label for="txSubCat">ໝວດໝູ່ຍ່ອຍ</label>
+              <select id="txSubCat"></select>
+            </div>
+            <div class="field span2">
+              <label for="txNote">ໝາຍເຫດ</label>
+              <input type="text" id="txNote" placeholder="ບໍ່ບັງຄັບ">
+            </div>
+          </div>
+          <div class="controls-row" style="margin-top:6px;">
+            <button type="submit" class="btn brass" id="txSubmitBtn">ບັນທຶກລາຍການ</button>
+            <button type="button" class="btn ghost" id="txCancelEditBtn" style="display:none;">ຍົກເລີກການແກ້ໄຂ</button>
+          </div>
+        </form>
+      </div>
+
+      <hr class="rule">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>ລາຍການລ່າສຸດ</h3>
+        </div>
+        <div style="overflow-x:auto;">
+        <table id="recentTable">
+          <thead><tr>
+            <th data-sort="date">ວັນທີ <span class="arrow">&#9662;</span></th>
+            <th data-sort="type">ປະເພດ <span class="arrow">&#9662;</span></th>
+            <th data-sort="cat">ໝວດໝູ່ <span class="arrow">&#9662;</span></th>
+            <th data-sort="note">ໝາຍເຫດ <span class="arrow">&#9662;</span></th>
+            <th data-sort="amount" class="num-col">ຈຳນວນເງິນ <span class="arrow">&#9662;</span></th>
+            <th></th>
+          </tr></thead>
+          <tbody id="recentTableBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- CATEGORIES ---- -->
+    <section id="view-categories" class="view" style="display:none;">
+      <h1 class="page-title">ໝວດໝູ່</h1>
+      <p class="page-sub">ຈັດການໝວດໝູ່ຫຼັກ ແລະ ໝວດໝູ່ຍ່ອຍ ສຳລັບລາຍຮັບ ແລະ ລາຍຈ່າຍ</p>
+      <div class="cat-columns">
+        <div class="cat-block">
+          <div class="cat-block-head income">ໝວດໝູ່ລາຍຮັບ</div>
+          <div id="catListIncome"></div>
+          <div class="add-inline">
+            <input type="text" id="newMainCatIncome" placeholder="ໝວດໝູ່ຫຼັກໃໝ່...">
+            <button class="btn sm" onclick="addMainCategory('income')">ເພີ່ມ</button>
+          </div>
+        </div>
+        <div class="cat-block">
+          <div class="cat-block-head expense">ໝວດໝູ່ລາຍຈ່າຍ</div>
+          <div id="catListExpense"></div>
+          <div class="add-inline">
+            <input type="text" id="newMainCatExpense" placeholder="ໝວດໝູ່ຫຼັກໃໝ່...">
+            <button class="btn sm" onclick="addMainCategory('expense')">ເພີ່ມ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- REPORTS ---- -->
+    <section id="view-reports" class="view" style="display:none;">
+      <h1 class="page-title">ລາຍງານທາງການເງິນ</h1>
+      <p class="page-sub">ເລືອກຊ່ວງເວລາເພື່ອເບິ່ງລາຍງານ ແລະ ຈັດຮຽງລຳດັບໄດ້</p>
+
+      <div class="panel-head">
+        <div class="controls-row">
+          <select id="reportPeriodType">
+            <option value="week">ປະຈຳອາທິດ</option>
+            <option value="month">ປະຈຳເດືອນ</option>
+            <option value="year">ປະຈຳປີ</option>
+          </select>
+          <input type="week" id="reportWeekPicker">
+          <select id="reportMonthPicker" style="display:none;"></select>
+          <select id="reportMonthYearPicker" style="display:none;"></select>
+          <select id="reportYearPicker" style="display:none;"></select>
+          <select id="reportTypeFilter">
+            <option value="all">ທັງໝົດ</option>
+            <option value="income">ລາຍຮັບ</option>
+            <option value="expense">ລາຍຈ່າຍ</option>
+          </select>
+          <button class="btn ghost sm" id="printReportBtn">ພິມ / ບັນທຶກ PDF</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="label">ລາຍຮັບລວມ</div><div class="value income num" id="repIncome">0</div></div>
+        <div class="stat"><div class="label">ລາຍຈ່າຍລວມ</div><div class="value expense num" id="repExpense">0</div></div>
+        <div class="stat"><div class="label">ຍອດຄົງເຫຼືອ</div><div class="value balance num" id="repBalance">0</div></div>
+      </div>
+
+      <div style="overflow-x:auto;">
+      <table id="reportTable">
+        <thead><tr>
+          <th data-sort="date">ວັນທີ <span class="arrow">&#9662;</span></th>
+          <th data-sort="type">ປະເພດ <span class="arrow">&#9662;</span></th>
+          <th data-sort="maincat">ໝວດໝູ່ຫຼັກ <span class="arrow">&#9662;</span></th>
+          <th data-sort="subcat">ໝວດໝູ່ຍ່ອຍ <span class="arrow">&#9662;</span></th>
+          <th data-sort="note">ໝາຍເຫດ <span class="arrow">&#9662;</span></th>
+          <th data-sort="user">ຜູ້ບັນທຶກ <span class="arrow">&#9662;</span></th>
+          <th data-sort="amount" class="num-col">ຈຳນວນເງິນ <span class="arrow">&#9662;</span></th>
+        </tr></thead>
+        <tbody id="reportTableBody"></tbody>
+        <tfoot><tr class="foot-total"><td colspan="6">ລວມ</td><td class="num-col num" id="reportFootTotal">0</td></tr></tfoot>
+      </table>
+      </div>
+    </section>
+
+    <!-- ---- USERS ---- -->
+    <section id="view-users" class="view" style="display:none;">
+      <h1 class="page-title">ຈັດການຜູ້ໃຊ້</h1>
+      <p class="page-sub">ບັນທຶກຜູ້ໃຊ້ໄດ້ສູງສຸດ 5 ຄົນ</p>
+      <div class="users-list" id="usersList"></div>
+      <hr class="rule" id="addUserRule">
+      <div class="form-card" id="addUserCard" style="max-width:420px;">
+        <h4 style="margin-top:0;color:var(--teal-dark);">ເພີ່ມຜູ້ໃຊ້ໃໝ່</h4>
+        <form id="addUserForm">
+          <div class="field"><label>ຊື່ສະແດງ</label><input type="text" id="newUserName" required></div>
+          <div class="field"><label>ຊື່ຜູ້ໃຊ້</label><input type="text" id="newUserUsername" required></div>
+          <div class="field"><label>ລະຫັດຜ່ານ (ຢ່າງໜ້ອຍ 6 ຕົວ)</label><input type="password" id="newUserPassword" minlength="6" required></div>
+          <button type="submit" class="btn brass">ເພີ່ມຜູ້ໃຊ້</button>
+        </form>
+      </div>
+      <div class="hint-msg" id="userLimitMsg" style="display:none;">ຄົບຈຳນວນ 5 ຜູ້ໃຊ້ແລ້ວ ບໍ່ສາມາດເພີ່ມໄດ້ອີກ</div>
+    </section>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bn-item" data-view="dashboard"><span class="nav-ico">&#9670;</span>ໜ້າຫຼັກ</div>
+    <div class="bn-item" data-view="transactions"><span class="nav-ico">&#9998;</span>ບັນທຶກ</div>
+    <div class="bn-item" data-view="categories"><span class="nav-ico">&#9776;</span>ໝວດໝູ່</div>
+    <div class="bn-item" data-view="reports"><span class="nav-ico">&#9783;</span>ລາຍງານ</div>
+    <div class="bn-item" data-view="users"><span class="nav-ico">&#9822;</span>ຜູ້ໃຊ້</div>
+  </nav>
+</div>
+
+<!-- confirm modal -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <h4 id="confirmTitle">ຢືນຢັນ</h4>
+    <p id="confirmBody" style="color:var(--ink-soft);font-size:.92rem;"></p>
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="confirmCancelBtn">ຍົກເລີກ</button>
+      <button class="btn danger sm" id="confirmOkBtn">ຢືນຢັນ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ — Firebase Firestore backend
+   =========================================================
+   SETUP (do this before using the app):
+   1. Create a project at https://console.firebase.google.com
+   2. Build > Authentication > Sign-in method > enable "Email/Password"
+   3. Build > Firestore Database > Create database (production mode, pick a region)
+   4. Project settings > General > "Your apps" > Add app > Web app > copy the
+      firebaseConfig object and paste it below, replacing the placeholder.
+   5. Firestore Database > Rules, paste:
+
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /meta/setup {
+            allow read: if true;
+            allow write: if request.auth != null;
+          }
+          match /users/{userId} {
+            allow read: if request.auth != null;
+            allow create: if request.auth != null && request.auth.uid == userId;
+            allow update, delete: if request.auth != null;
+          }
+          match /meta/categories {
+            allow read, write: if request.auth != null;
+          }
+          match /transactions/{txId} {
+            allow read, write: if request.auth != null;
+          }
+        }
+      }
+
+   NOTE ON THE 5-USER LIMIT: it is enforced in this app's client code (checked
+   before showing/accepting the "add user" form). Firestore security rules
+   cannot easily count a collection, so a technically savvy person editing
+   requests directly could bypass the count. For a small internal team this
+   is a reasonable tradeoff; a hard server-side cap would need a Cloud
+   Function, which is outside what a static HTML file can do.
+
+   NOTE ON DELETING A USER: this app can remove a user's profile document
+   (blocking them from the app immediately), but a static-HTML client cannot
+   delete another person's Firebase Auth sign-in credentials — only Firebase
+   itself (Console, or an admin backend) can do that. If someone is removed
+   here, their old password will still authenticate, but the app will sign
+   them straight back out since their profile is gone.
+   ========================================================= */
+
+// ---- STEP 4 GOES HERE: paste your Firebase project config ----
+const firebaseConfig = {
+  apiKey: "AIzaSyDAi94IFgR3TQw_7H4qbkCDAK3vs80yui4",
+  authDomain: "my-expense90.firebaseapp.com",
+  projectId: "my-expense90",
+  storageBucket: "my-expense90.firebasestorage.app",
+  messagingSenderId: "852080799603",
+  appId: "1:852080799603:web:f7c176cb601579deb35f06"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const EMAIL_DOMAIN = 'ledger.local';
+const MAX_USERS = 5;
+const MONTH_NAMES = ['ມັງກອນ','ກຸມພາ','ມີນາ','ເມສາ','ພຶດສະພາ','ມິຖຸນາ','ກໍລະກົດ','ສິງຫາ','ກັນຍາ','ຕຸລາ','ພະຈິກ','ທັນວາ'];
+
+function usernameToEmail(u){ return u.trim().toLowerCase()+'@'+EMAIL_DOMAIN; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function fmtMoney(n){ return Math.round(n).toLocaleString('lo-LA'); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+
+function defaultCategories(){
+  return {
+    income: [
+      { id: uid(), name: 'ເງິນເດືອນ', subs: [{id:uid(),name:'ເງິນເດືອນປະຈຳ'},{id:uid(),name:'ໂບນັດ'}] },
+      { id: uid(), name: 'ລາຍໄດ້ທຸລະກິດ', subs: [{id:uid(),name:'ຂາຍສິນຄ້າ'},{id:uid(),name:'ບໍລິການ'}] },
+      { id: uid(), name: 'ລາຍໄດ້ອື່ນໆ', subs: [{id:uid(),name:'ດອກເບ້ຍ'},{id:uid(),name:'ຂອງຂວັນ'}] }
+    ],
+    expense: [
+      { id: uid(), name: 'ອາຫານ', subs: [{id:uid(),name:'ຄ່າກິນ'},{id:uid(),name:'ຂອງຊຳ'}] },
+      { id: uid(), name: 'ທີ່ຢູ່ອາໄສ', subs: [{id:uid(),name:'ຄ່າເຊົ່າ'},{id:uid(),name:'ສ້ອມແປງ'}] },
+      { id: uid(), name: 'ການເດີນທາງ', subs: [{id:uid(),name:'ນ້ຳມັນ'},{id:uid(),name:'ຄ່າລົດ'}] },
+      { id: uid(), name: 'ສາທາລະນຸປະໂພກ', subs: [{id:uid(),name:'ໄຟຟ້າ'},{id:uid(),name:'ນ້ຳປະປາ'},{id:uid(),name:'ອິນເຕີເນັດ'}] },
+      { id: uid(), name: 'ສຸຂະພາບ', subs: [{id:uid(),name:'ຄ່າໝໍ'},{id:uid(),name:'ຢາ'}] },
+      { id: uid(), name: 'ການສຶກສາ', subs: [{id:uid(),name:'ຄ່າຮຽນ'},{id:uid(),name:'ອຸປະກອນຮຽນ'}] },
+      { id: uid(), name: 'ບັນເທີງ', subs: [{id:uid(),name:'ພັກຜ່ອນ'},{id:uid(),name:'ຊື້ເຄື່ອງ'}] },
+      { id: uid(), name: 'ອື່ນໆ', subs: [{id:uid(),name:'ອື່ນໆ'}] }
+    ]
+  };
+}
+
+/* ---------- live state (kept in sync via onSnapshot) ---------- */
+let categories = { income:[], expense:[] };
+let txCache = [];
+let usersCache = [];
+let currentUser = null;
+let unsubTx=null, unsubCats=null, unsubUsers=null;
+let sortState = { recent:{key:'date',dir:-1}, report:{key:'date',dir:-1} };
+let trendChart=null, yearChart=null;
+let txType='expense';
+
+/* =========================================================
+   LOGIN SCREEN (pre-auth)
+   ========================================================= */
+async function renderLoginScreen(){
+  const setupForm = document.getElementById('setupForm');
+  const loginWrap = document.getElementById('loginFormWrap');
+  const countHint = document.getElementById('loginCountHint');
+  let setupDoc;
+  try{
+    setupDoc = await db.collection('meta').doc('setup').get();
+  }catch(e){
+    countHint.textContent = 'ບໍ່ສາມາດເຊື່ອມຕໍ່ Firebase ໄດ້ — ກວດສອບ firebaseConfig ແລະ Firestore rules';
+    setupForm.style.display='none'; loginWrap.style.display='block';
+    return;
+  }
+  const initialized = setupDoc.exists && setupDoc.data().initialized;
+  const count = setupDoc.exists ? (setupDoc.data().userCount||0) : 0;
+  if(!initialized){
+    setupForm.style.display='block';
+    loginWrap.style.display='none';
+    countHint.textContent='';
+  } else {
+    setupForm.style.display='none';
+    loginWrap.style.display='block';
+    countHint.textContent = `ຜູ້ໃຊ້ທັງໝົດ ${count}/${MAX_USERS} ຄົນ`;
+  }
+}
+function showLoginError(msg){
+  document.getElementById('loginErrorBox').innerHTML = msg ? `<div class="error-msg">${msg}</div>` : '';
+}
+function authErrorMsg(e){
+  const map = {
+    'auth/wrong-password':'ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ',
+    'auth/user-not-found':'ບໍ່ພົບຊື່ຜູ້ໃຊ້ນີ້',
+    'auth/invalid-credential':'ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ',
+    'auth/too-many-requests':'ພະຍາຍາມຫຼາຍເທື່ອເກີນໄປ, ກະລຸນາລໍຖ້າແລ້ວລອງໃໝ່',
+    'auth/email-already-in-use':'ຊື່ຜູ້ໃຊ້ນີ້ຖືກໃຊ້ແລ້ວ',
+    'auth/weak-password':'ລະຫັດຜ່ານສັ້ນເກີນໄປ (ຢ່າງໜ້ອຍ 6 ຕົວ)'
+  };
+  return map[e.code] || ('ຜິດພາດ: '+e.message);
+}
+
+document.getElementById('setupForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('setupName').value.trim();
+  const username = document.getElementById('setupUsername').value.trim().toLowerCase();
+  const pw = document.getElementById('setupPassword').value;
+  showLoginError('');
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), pw);
+    await db.collection('users').doc(cred.user.uid).set({
+      displayName:name, username, role:'admin', createdAt: Date.now()
+    });
+    await db.collection('meta').doc('categories').set(defaultCategories());
+    await db.collection('meta').doc('setup').set({initialized:true, userCount:1});
+  }catch(err){
+    showLoginError(authErrorMsg(err));
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+  const pw = document.getElementById('loginPassword').value;
+  showLoginError('');
+  try{
+    await auth.signInWithEmailAndPassword(usernameToEmail(username), pw);
+    document.getElementById('loginPassword').value='';
+  }catch(err){
+    showLoginError(authErrorMsg(err));
+  }
+});
+
+function logout(){ auth.signOut(); }
+document.getElementById('logoutBtn').onclick=logout;
+document.getElementById('logoutBtnMobile').onclick=logout;
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+function switchView(view){
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  document.getElementById('view-'+view).style.display='block';
+  document.querySelectorAll('.nav-item, .bn-item').forEach(n=>{
+    n.classList.toggle('active', n.dataset.view===view);
+  });
+  refreshCurrentView();
+}
+document.querySelectorAll('.nav-item, .bn-item').forEach(el=>{
+  el.addEventListener('click', ()=>switchView(el.dataset.view));
+});
+function currentView(){
+  const el = document.querySelector('.view[style*="display: block"]') || document.getElementById('view-dashboard');
+  return el.id.replace('view-','');
+}
+function refreshCurrentView(){
+  const view = currentView();
+  if(view==='dashboard') renderDashboard();
+  if(view==='transactions') renderRecentTable();
+  if(view==='categories') renderCategories();
+  if(view==='reports') renderReport();
+  if(view==='users') renderUsers();
+}
+
+/* =========================================================
+   FIRESTORE LISTENERS
+   ========================================================= */
+function attachListeners(){
+  unsubCats = db.collection('meta').doc('categories').onSnapshot(doc=>{
+    categories = doc.exists ? doc.data() : defaultCategories();
+    if(document.getElementById('view-transactions').style.display!=='none') populateMainCatSelect(txType);
+    refreshCurrentView();
+  });
+  unsubTx = db.collection('transactions').onSnapshot(snap=>{
+    txCache = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    refreshCurrentView();
+  }, err=>{ console.error('transactions listener error', err); });
+  unsubUsers = db.collection('users').onSnapshot(snap=>{
+    usersCache = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    db.collection('meta').doc('setup').set({initialized:true, userCount:usersCache.length}, {merge:true});
+    refreshCurrentView();
+  }, err=>{ console.error('users listener error', err); });
+}
+function detachListeners(){
+  if(unsubTx) unsubTx(); if(unsubCats) unsubCats(); if(unsubUsers) unsubUsers();
+  unsubTx=unsubCats=unsubUsers=null;
+  txCache=[]; usersCache=[]; categories={income:[],expense:[]};
+}
+
+/* =========================================================
+   TRANSACTIONS
+   ========================================================= */
+function populateMainCatSelect(type){
+  const sel = document.getElementById('txMainCat');
+  sel.innerHTML='';
+  (categories[type]||[]).forEach(mc=>{
+    const opt=document.createElement('option'); opt.value=mc.id; opt.textContent=mc.name;
+    sel.appendChild(opt);
+  });
+  populateSubCatSelect(type, sel.value);
+}
+function populateSubCatSelect(type, mainCatId){
+  const sub = document.getElementById('txSubCat');
+  sub.innerHTML='';
+  const mc = (categories[type]||[]).find(m=>m.id===mainCatId);
+  (mc ? mc.subs : []).forEach(s=>{
+    const opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.name;
+    sub.appendChild(opt);
+  });
+}
+function setTxType(type){
+  txType=type;
+  document.getElementById('typeIncomeBtn').classList.toggle('active',type==='income');
+  document.getElementById('typeIncomeBtn').classList.toggle('income',type==='income');
+  document.getElementById('typeExpenseBtn').classList.toggle('active',type==='expense');
+  document.getElementById('typeExpenseBtn').classList.toggle('expense',type==='expense');
+  populateMainCatSelect(type);
+}
+document.getElementById('typeIncomeBtn').onclick=()=>setTxType('income');
+document.getElementById('typeExpenseBtn').onclick=()=>setTxType('expense');
+document.getElementById('txMainCat').addEventListener('change', (e)=>populateSubCatSelect(txType, e.target.value));
+
+document.getElementById('txForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const editId = document.getElementById('txEditId').value;
+  const mainCatId = document.getElementById('txMainCat').value;
+  const subCatId = document.getElementById('txSubCat').value;
+  const entry = {
+    type: txType,
+    date: document.getElementById('txDate').value,
+    mainCatId, subCatId,
+    amount: parseFloat(document.getElementById('txAmount').value)||0,
+    note: document.getElementById('txNote').value.trim(),
+    userId: currentUser.id,
+    userName: currentUser.displayName
+  };
+  try{
+    if(editId){
+      await db.collection('transactions').doc(editId).update(entry);
+    } else {
+      entry.createdAt = Date.now();
+      await db.collection('transactions').add(entry);
+    }
+    resetTxForm();
+  }catch(err){ alert('ບໍ່ສາມາດບັນທຶກໄດ້: '+err.message); }
+});
+
+function resetTxForm(){
+  document.getElementById('txForm').reset();
+  document.getElementById('txEditId').value='';
+  document.getElementById('txSubmitBtn').textContent='ບັນທຶກລາຍການ';
+  document.getElementById('txCancelEditBtn').style.display='none';
+  document.getElementById('txDate').value=todayStr();
+  setTxType('expense');
+}
+document.getElementById('txCancelEditBtn').onclick=resetTxForm;
+
+function catName(type, mainCatId, subCatId){
+  const mc = (categories[type]||[]).find(m=>m.id===mainCatId);
+  const sc = mc ? mc.subs.find(s=>s.id===subCatId) : null;
+  return { main: mc?mc.name:'—', sub: sc?sc.name:'—' };
+}
+function userName(id){ const u=usersCache.find(x=>x.id===id); return u?u.displayName:'—'; }
+
+function renderRecentTable(){
+  const st = sortState.recent;
+  let list = txCache.slice().sort((a,b)=>compareBy(a,b,st.key)*st.dir);
+  const tbody = document.getElementById('recentTableBody');
+  if(list.length===0){ tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">ຍັງບໍ່ມີລາຍການ</div></td></tr>`; return; }
+  tbody.innerHTML = list.slice(0,25).map(t=>{
+    const names = catName(t.type,t.mainCatId,t.subCatId);
+    return `<tr>
+      <td>${t.date}</td>
+      <td><span class="tag ${t.type}">${t.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</span></td>
+      <td>${names.main} / ${names.sub}</td>
+      <td>${t.note||'—'}</td>
+      <td class="num-col num">${fmtMoney(t.amount)}</td>
+      <td class="row-actions"><a onclick="editTx('${t.id}')">ແກ້ໄຂ</a><a onclick="askDeleteTx('${t.id}')">ລຶບ</a></td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('#recentTable thead th').forEach(h=>h.classList.toggle('sorted', h.dataset.sort===st.key));
+}
+function editTx(id){
+  const t = txCache.find(x=>x.id===id);
+  if(!t) return;
+  switchView('transactions');
+  document.getElementById('txEditId').value=t.id;
+  setTxType(t.type);
+  document.getElementById('txDate').value=t.date;
+  document.getElementById('txMainCat').value=t.mainCatId;
+  populateSubCatSelect(t.type, t.mainCatId);
+  document.getElementById('txSubCat').value=t.subCatId;
+  document.getElementById('txAmount').value=t.amount;
+  document.getElementById('txNote').value=t.note||'';
+  document.getElementById('txSubmitBtn').textContent='ບັນທຶກການແກ້ໄຂ';
+  document.getElementById('txCancelEditBtn').style.display='inline-flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function askDeleteTx(id){
+  confirmAction('ລຶບລາຍການ','ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບລາຍການນີ້?', async ()=>{
+    await db.collection('transactions').doc(id).delete();
+  });
+}
+document.querySelectorAll('#recentTable thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const st = sortState.recent;
+    st.dir = (st.key===th.dataset.sort) ? -st.dir : 1;
+    st.key = th.dataset.sort;
+    renderRecentTable();
+  });
+});
+function compareBy(a,b,key){
+  switch(key){
+    case 'date': return a.date.localeCompare(b.date);
+    case 'type': return a.type.localeCompare(b.type);
+    case 'cat': { const an=catName(a.type,a.mainCatId,a.subCatId).main, bn=catName(b.type,b.mainCatId,b.subCatId).main; return an.localeCompare(bn); }
+    case 'maincat': { const an=catName(a.type,a.mainCatId,a.subCatId).main, bn=catName(b.type,b.mainCatId,b.subCatId).main; return an.localeCompare(bn); }
+    case 'subcat': { const an=catName(a.type,a.mainCatId,a.subCatId).sub, bn=catName(b.type,b.mainCatId,b.subCatId).sub; return an.localeCompare(bn); }
+    case 'note': return (a.note||'').localeCompare(b.note||'');
+    case 'user': return userName(a.userId).localeCompare(userName(b.userId));
+    case 'amount': return a.amount-b.amount;
+    default: return 0;
+  }
+}
+
+/* =========================================================
+   CATEGORIES MANAGEMENT (whole-doc read/modify/write)
+   ========================================================= */
+async function saveCategories(){ await db.collection('meta').doc('categories').set(categories); }
+function renderCategories(){ renderCatColumn('income'); renderCatColumn('expense'); }
+function renderCatColumn(type){
+  const container = document.getElementById(type==='income'?'catListIncome':'catListExpense');
+  container.innerHTML = (categories[type]||[]).map(mc=>`
+    <div class="main-cat-item">
+      <div class="mc-row">
+        <span>${mc.name}</span>
+        <span class="row-actions">
+          <a onclick="renameMainCat('${type}','${mc.id}')">ແກ້ໄຂ</a>
+          <a onclick="deleteMainCat('${type}','${mc.id}')">ລຶບ</a>
+        </span>
+      </div>
+      <div class="sub-list">
+        ${mc.subs.map(s=>`
+          <div class="sub-row">
+            <span>${s.name}</span>
+            <span class="row-actions">
+              <a onclick="renameSubCat('${type}','${mc.id}','${s.id}')">ແກ້ໄຂ</a>
+              <a onclick="deleteSubCat('${type}','${mc.id}','${s.id}')">ລຶບ</a>
+            </span>
+          </div>`).join('')}
+        <div class="add-inline" style="padding:6px 0 0;">
+          <input type="text" placeholder="ໝວດໝູ່ຍ່ອຍໃໝ່..." id="newSub-${type}-${mc.id}">
+          <button class="btn sm ghost" onclick="addSubCategory('${type}','${mc.id}')">ເພີ່ມ</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || `<div class="empty-state">ບໍ່ມີໝວດໝູ່</div>`;
+}
+async function addMainCategory(type){
+  const input = document.getElementById(type==='income'?'newMainCatIncome':'newMainCatExpense');
+  const name = input.value.trim();
+  if(!name) return;
+  categories[type].push({id:uid(), name, subs:[]});
+  input.value='';
+  await saveCategories();
+}
+async function renameMainCat(type,id){
+  const mc = categories[type].find(m=>m.id===id);
+  const name = prompt('ຊື່ໝວດໝູ່ຫຼັກ', mc.name);
+  if(name && name.trim()){ mc.name=name.trim(); await saveCategories(); }
+}
+function deleteMainCat(type,id){
+  confirmAction('ລຶບໝວດໝູ່ຫຼັກ','ລຶບໝວດໝູ່ນີ້ຈະບໍ່ລຶບລາຍການທີ່ບັນທຶກໄວ້ແລ້ວ. ດຳເນີນການຕໍ່ບໍ່?', async ()=>{
+    categories[type]=categories[type].filter(m=>m.id!==id);
+    await saveCategories();
+  });
+}
+async function addSubCategory(type,mainId){
+  const input = document.getElementById(`newSub-${type}-${mainId}`);
+  const name = input.value.trim();
+  if(!name) return;
+  const mc = categories[type].find(m=>m.id===mainId);
+  mc.subs.push({id:uid(), name});
+  await saveCategories();
+}
+async function renameSubCat(type,mainId,subId){
+  const mc = categories[type].find(m=>m.id===mainId);
+  const s = mc.subs.find(x=>x.id===subId);
+  const name = prompt('ຊື່ໝວດໝູ່ຍ່ອຍ', s.name);
+  if(name && name.trim()){ s.name=name.trim(); await saveCategories(); }
+}
+function deleteSubCat(type,mainId,subId){
+  confirmAction('ລຶບໝວດໝູ່ຍ່ອຍ','ດຳເນີນການລຶບຕໍ່ບໍ່?', async ()=>{
+    const mc = categories[type].find(m=>m.id===mainId);
+    mc.subs = mc.subs.filter(s=>s.id!==subId);
+    await saveCategories();
+  });
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+function fillMonthYearSelectors(){
+  const now = new Date();
+  const monthSel = document.getElementById('dashMonth');
+  monthSel.innerHTML = MONTH_NAMES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  monthSel.value = now.getMonth();
+  const years = yearsWithData(now.getFullYear());
+  const yearSel = document.getElementById('dashYear');
+  const yearOnlySel = document.getElementById('dashYearOnly');
+  [yearSel, yearOnlySel].forEach(sel=>{
+    sel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    sel.value = now.getFullYear();
+  });
+}
+function yearsWithData(currentYear){
+  const set = new Set([currentYear]);
+  txCache.forEach(t=>set.add(parseInt(t.date.slice(0,4))));
+  return Array.from(set).sort((a,b)=>b-a);
+}
+document.getElementById('dashMonth').addEventListener('change', renderDashboard);
+document.getElementById('dashYear').addEventListener('change', renderDashboard);
+document.getElementById('dashYearOnly').addEventListener('change', renderDashboard);
+
+function renderDashboard(){
+  const month = parseInt(document.getElementById('dashMonth').value);
+  const year = parseInt(document.getElementById('dashYear').value);
+  const all = txCache;
+
+  const inMonth = all.filter(t=>{ const d=new Date(t.date+'T00:00:00'); return d.getMonth()===month && d.getFullYear()===year; });
+  const mIncome = sum(inMonth,'income'), mExpense = sum(inMonth,'expense');
+  document.getElementById('dashMonthIncome').textContent = fmtMoney(mIncome);
+  document.getElementById('dashMonthExpense').textContent = fmtMoney(mExpense);
+  document.getElementById('dashMonthBalance').textContent = fmtMoney(mIncome-mExpense);
+
+  const byCat = {};
+  inMonth.filter(t=>t.type==='expense').forEach(t=>{
+    const name = catName('expense',t.mainCatId,t.subCatId).main;
+    byCat[name] = (byCat[name]||0) + t.amount;
+  });
+  const entries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const barBox = document.getElementById('dashMonthCatBars');
+  if(entries.length===0){
+    barBox.innerHTML = `<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>`;
+  } else {
+    const max = entries[0][1];
+    barBox.innerHTML = entries.map(([name,val])=>`
+      <div class="bar-item">
+        <div class="bi-top"><span>${name}</span><span class="num">${fmtMoney(val)}</span></div>
+        <div class="bi-track"><div class="bi-fill expense" style="width:${(val/max*100).toFixed(1)}%"></div></div>
+      </div>`).join('');
+  }
+
+  const trendLabels=[], trendIncome=[], trendExpense=[];
+  for(let i=5;i>=0;i--){
+    const d = new Date(year, month-i, 1);
+    const mIdx=d.getMonth(), yIdx=d.getFullYear();
+    const inM = all.filter(t=>{ const td=new Date(t.date+'T00:00:00'); return td.getMonth()===mIdx && td.getFullYear()===yIdx; });
+    trendLabels.push(MONTH_NAMES[mIdx].slice(0,3)+' '+String(yIdx).slice(2));
+    trendIncome.push(sum(inM,'income'));
+    trendExpense.push(sum(inM,'expense'));
+  }
+  drawTrendChart(trendLabels, trendIncome, trendExpense);
+
+  const yearOnly = parseInt(document.getElementById('dashYearOnly').value);
+  const inYear = all.filter(t=> new Date(t.date+'T00:00:00').getFullYear()===yearOnly);
+  const yIncome=sum(inYear,'income'), yExpense=sum(inYear,'expense');
+  document.getElementById('dashYearIncome').textContent = fmtMoney(yIncome);
+  document.getElementById('dashYearExpense').textContent = fmtMoney(yExpense);
+  document.getElementById('dashYearBalance').textContent = fmtMoney(yIncome-yExpense);
+
+  const monthlyIncome = new Array(12).fill(0), monthlyExpense = new Array(12).fill(0);
+  inYear.forEach(t=>{
+    const m = new Date(t.date+'T00:00:00').getMonth();
+    if(t.type==='income') monthlyIncome[m]+=t.amount; else monthlyExpense[m]+=t.amount;
+  });
+  drawYearChart(monthlyIncome, monthlyExpense);
+}
+function sum(list,type){ return list.filter(t=>t.type===type).reduce((s,t)=>s+t.amount,0); }
+function drawTrendChart(labels, income, expense){
+  const ctx = document.getElementById('dashTrendChart');
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'ລາຍຮັບ', data:income, borderColor:'#3C7A5B', backgroundColor:'rgba(60,122,91,.12)', tension:.3, fill:true},
+      {label:'ລາຍຈ່າຍ', data:expense, borderColor:'#AE4A3A', backgroundColor:'rgba(174,74,58,.10)', tension:.3, fill:true}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}}},
+      scales:{ x:{ticks:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}}, y:{ticks:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}} }
+    }
+  });
+}
+function drawYearChart(monthlyIncome, monthlyExpense){
+  const ctx = document.getElementById('dashYearChart');
+  if(yearChart) yearChart.destroy();
+  yearChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: MONTH_NAMES.map(m=>m.slice(0,3)), datasets:[
+      {label:'ລາຍຮັບ', data:monthlyIncome, backgroundColor:'#3C7A5B'},
+      {label:'ລາຍຈ່າຍ', data:monthlyExpense, backgroundColor:'#AE4A3A'}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}}},
+      scales:{ x:{ticks:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}}, y:{ticks:{font:{family:"'Phetsarath OT','Noto Sans Lao'"}}} }
+    }
+  });
+}
+
+/* =========================================================
+   REPORTS
+   ========================================================= */
+const periodTypeSel = document.getElementById('reportPeriodType');
+const weekPicker = document.getElementById('reportWeekPicker');
+const monthPicker = document.getElementById('reportMonthPicker');
+const monthYearPicker = document.getElementById('reportMonthYearPicker');
+const yearPicker = document.getElementById('reportYearPicker');
+const typeFilter = document.getElementById('reportTypeFilter');
+
+function fillReportPickers(){
+  monthPicker.innerHTML = MONTH_NAMES.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  const now = new Date();
+  monthPicker.value = now.getMonth();
+  const years = yearsWithData(now.getFullYear());
+  monthYearPicker.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  monthYearPicker.value = now.getFullYear();
+  yearPicker.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  yearPicker.value = now.getFullYear();
+  weekPicker.value = getISOWeekString(now);
+}
+function getISOWeekString(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2,'0')}`;
+}
+function weekRangeFromISO(isoStr){
+  const [yearStr, weekStr] = isoStr.split('-W');
+  const year = parseInt(yearStr), week = parseInt(weekStr);
+  const jan4 = new Date(Date.UTC(year,0,4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week-1)*7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate()+6);
+  return { start: monday.toISOString().slice(0,10), end: sunday.toISOString().slice(0,10) };
+}
+periodTypeSel.addEventListener('change', ()=>{
+  weekPicker.style.display = periodTypeSel.value==='week' ? 'inline-block':'none';
+  monthPicker.style.display = periodTypeSel.value==='month' ? 'inline-block':'none';
+  monthYearPicker.style.display = periodTypeSel.value==='month' ? 'inline-block':'none';
+  yearPicker.style.display = periodTypeSel.value==='year' ? 'inline-block':'none';
+  renderReport();
+});
+[weekPicker, monthPicker, monthYearPicker, yearPicker, typeFilter].forEach(el=>el.addEventListener('change', renderReport));
+function getReportRange(){
+  const pt = periodTypeSel.value;
+  if(pt==='week'){ if(!weekPicker.value) return null; return weekRangeFromISO(weekPicker.value); }
+  if(pt==='month'){
+    const y = parseInt(monthYearPicker.value), m = parseInt(monthPicker.value);
+    const start = new Date(y,m,1), end = new Date(y,m+1,0);
+    return { start: start.toISOString().slice(0,10), end: end.toISOString().slice(0,10) };
+  }
+  if(pt==='year'){ const y = parseInt(yearPicker.value); return { start: `${y}-01-01`, end: `${y}-12-31` }; }
+  return null;
+}
+function renderReport(){
+  const range = getReportRange();
+  if(!range) return;
+  let list = txCache.filter(t=> t.date>=range.start && t.date<=range.end);
+  if(typeFilter.value!=='all') list = list.filter(t=>t.type===typeFilter.value);
+  const st = sortState.report;
+  list.sort((a,b)=>compareBy(a,b,st.key)*st.dir);
+
+  document.getElementById('repIncome').textContent = fmtMoney(sum(list,'income'));
+  document.getElementById('repExpense').textContent = fmtMoney(sum(list,'expense'));
+  document.getElementById('repBalance').textContent = fmtMoney(sum(list,'income')-sum(list,'expense'));
+
+  const tbody = document.getElementById('reportTableBody');
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">ບໍ່ມີລາຍການໃນຊ່ວງເວລານີ້</div></td></tr>`;
+  } else {
+    tbody.innerHTML = list.map(t=>{
+      const names = catName(t.type,t.mainCatId,t.subCatId);
+      return `<tr>
+        <td>${t.date}</td>
+        <td><span class="tag ${t.type}">${t.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</span></td>
+        <td>${names.main}</td>
+        <td>${names.sub}</td>
+        <td>${t.note||'—'}</td>
+        <td>${userName(t.userId)}</td>
+        <td class="num-col num">${fmtMoney(t.amount)}</td>
+      </tr>`;
+    }).join('');
+  }
+  const totalAmt = list.reduce((s,t)=> s + (t.type==='income'?t.amount:-t.amount), 0);
+  document.getElementById('reportFootTotal').textContent = fmtMoney(Math.abs(totalAmt)) + (totalAmt<0?' (ຕິດລົບ)':'');
+  document.querySelectorAll('#reportTable thead th').forEach(h=>h.classList.toggle('sorted', h.dataset.sort===st.key));
+}
+document.querySelectorAll('#reportTable thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const st = sortState.report;
+    st.dir = (st.key===th.dataset.sort) ? -st.dir : 1;
+    st.key = th.dataset.sort;
+    renderReport();
+  });
+});
+document.getElementById('printReportBtn').onclick=()=>window.print();
+
+/* =========================================================
+   USERS
+   ========================================================= */
+function renderUsers(){
+  document.getElementById('usersList').innerHTML = usersCache.map(u=>`
+    <div class="user-row">
+      <div>
+        <div class="u-name">${u.displayName} ${u.id===currentUser.id?'(ທ່ານ)':''}</div>
+        <div class="u-meta">@${u.username} · ${u.role==='admin'?'ຜູ້ດູແລລະບົບ':'ຜູ້ໃຊ້'}</div>
+      </div>
+      ${ (u.id!==currentUser.id) ? `<a class="btn ghost sm" onclick="askDeleteUser('${u.id}')">ລຶບ</a>` : '' }
+    </div>
+  `).join('');
+  const atLimit = usersCache.length>=MAX_USERS;
+  document.getElementById('addUserCard').style.display = atLimit ? 'none':'block';
+  document.getElementById('addUserRule').style.display = atLimit ? 'none':'block';
+  document.getElementById('userLimitMsg').style.display = atLimit ? 'block':'none';
+}
+document.getElementById('addUserForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(usersCache.length>=MAX_USERS) return;
+  const name = document.getElementById('newUserName').value.trim();
+  const username = document.getElementById('newUserUsername').value.trim().toLowerCase();
+  const pw = document.getElementById('newUserPassword').value;
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try{
+    // use a secondary Firebase app instance so creating this user doesn't
+    // sign the current admin out of their own session
+    let secondary = firebase.apps.find(a=>a.name==='Secondary');
+    if(!secondary) secondary = firebase.initializeApp(firebaseConfig, 'Secondary');
+    const cred = await secondary.auth().createUserWithEmailAndPassword(usernameToEmail(username), pw);
+    await secondary.firestore().collection('users').doc(cred.user.uid).set({
+      displayName:name, username, role:'member', createdAt: Date.now()
+    });
+    await secondary.auth().signOut();
+    document.getElementById('addUserForm').reset();
+  }catch(err){
+    alert(authErrorMsg(err));
+  }finally{
+    btn.disabled = false;
+  }
+});
+function askDeleteUser(id){
+  confirmAction('ລຶບຜູ້ໃຊ້','ຢືນຢັນການລຶບຜູ້ໃຊ້ນີ້ອອກຈາກລະບົບ? (ບັນຊີເຂົ້າສູ່ລະບົບເກົ່າຈະຖືກປິດການໃຊ້ງານທັນທີ)', async ()=>{
+    await db.collection('users').doc(id).delete();
+  });
+}
+
+/* =========================================================
+   CONFIRM MODAL
+   ========================================================= */
+let confirmCb=null;
+function confirmAction(title, body, cb){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmBody').textContent=body;
+  confirmCb=cb;
+  document.getElementById('confirmModal').classList.add('show');
+}
+document.getElementById('confirmCancelBtn').onclick=()=>{ document.getElementById('confirmModal').classList.remove('show'); confirmCb=null; };
+document.getElementById('confirmOkBtn').onclick=async ()=>{
+  document.getElementById('confirmModal').classList.remove('show');
+  if(confirmCb) await confirmCb();
+  confirmCb=null;
+};
+
+/* =========================================================
+   BOOT / AUTH STATE
+   ========================================================= */
+function boot(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('whoName').textContent = currentUser.displayName;
+  fillMonthYearSelectors();
+  fillReportPickers();
+  document.getElementById('txDate').value = todayStr();
+  setTxType('expense');
+  switchView('dashboard');
+}
+
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    try{
+      const profileSnap = await db.collection('users').doc(user.uid).get();
+      if(!profileSnap.exists){
+        showLoginError('ບັນຊີນີ້ຖືກລຶບອອກຈາກລະບົບແລ້ວ');
+        await auth.signOut();
+        return;
+      }
+      currentUser = { id: user.uid, ...profileSnap.data() };
+      attachListeners();
+      boot();
+    }catch(err){
+      showLoginError('ຜິດພາດໃນການເຊື່ອມຕໍ່: '+err.message);
+      await auth.signOut();
+    }
+  } else {
+    currentUser = null;
+    detachListeners();
+    document.getElementById('app').classList.remove('show');
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('loginForm').reset();
+    await renderLoginScreen();
+  }
+});
+</script>
+</body>
+</html>
