@@ -18,9 +18,9 @@
     font-weight: normal;
   }
   :root{
-    --paper:#F1EEE4;
-    --paper-2:#E9E4D4;
-    --line:#D9D0B8;
+    --paper:#FCFBF6;
+    --paper-2:#F3EFE1;
+    --line:#DED5B8;
     --ink:#232C2B;
     --ink-soft:#5B655F;
     --ink-faint:#8A9088;
@@ -503,6 +503,24 @@
         </div>
         <div class="chart-wrap" style="height:300px;"><canvas id="dashYearChart"></canvas></div>
       </div>
+
+      <hr class="rule">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>5 ອັນດັບສູງສຸດ (ຂໍ້ມູນທັງໝົດ)</h3>
+        </div>
+        <div class="grid-2">
+          <div>
+            <h3 style="font-size:.95rem;color:var(--income);margin:0 0 12px;">ລາຍຮັບສູງສຸດ 5 ອັນດັບ</h3>
+            <div class="bar-list" id="dashTop5Income"><div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div></div>
+          </div>
+          <div>
+            <h3 style="font-size:.95rem;color:var(--expense);margin:0 0 12px;">ລາຍຈ່າຍສູງສຸດ 5 ອັນດັບ</h3>
+            <div class="bar-list" id="dashTop5Expense"><div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ---- TRANSACTIONS (record) ---- -->
@@ -617,6 +635,7 @@
             <option value="expense">ລາຍຈ່າຍ</option>
           </select>
           <button class="btn ghost sm" id="printReportBtn">ພິມ / ບັນທຶກ PDF</button>
+          <button class="btn ghost sm" id="exportHtmlBtn">Export HTML</button>
         </div>
       </div>
 
@@ -1201,6 +1220,26 @@ function renderDashboard(){
     if(t.type==='income') monthlyIncome[m]+=t.amount; else monthlyExpense[m]+=t.amount;
   });
   drawYearChart(monthlyIncome, monthlyExpense);
+  renderTop5();
+}
+function renderTop5(){
+  renderTop5List('income', 'dashTop5Income');
+  renderTop5List('expense', 'dashTop5Expense');
+}
+function renderTop5List(type, elId){
+  const box = document.getElementById(elId);
+  const list = txCache.filter(t=>t.type===type).slice().sort((a,b)=>b.amount-a.amount).slice(0,5);
+  if(list.length===0){ box.innerHTML = `<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>`; return; }
+  const max = list[0].amount || 1;
+  box.innerHTML = list.map(t=>{
+    const names = catName(t.type,t.mainCatId,t.subCatId);
+    const label = names.main + (t.note ? ' — '+t.note : '');
+    return `
+    <div class="bar-item">
+      <div class="bi-top"><span>${label} <span style="color:var(--ink-faint);font-size:.85em;">(${t.date})</span></span><span class="num">${fmtMoney(t.amount)}</span></div>
+      <div class="bi-track"><div class="bi-fill${type==='expense'?' expense':''}" style="width:${(t.amount/max*100).toFixed(1)}%"></div></div>
+    </div>`;
+  }).join('');
 }
 function sum(list,type){ return list.filter(t=>t.type===type).reduce((s,t)=>s+t.amount,0); }
 function drawTrendChart(labels, income, expense){
@@ -1335,6 +1374,77 @@ document.querySelectorAll('#reportTable thead th[data-sort]').forEach(th=>{
   });
 });
 document.getElementById('printReportBtn').onclick=()=>window.print();
+
+function exportReportHtml(){
+  const range = getReportRange();
+  if(!range) return;
+  let list = txCache.filter(t=> t.date>=range.start && t.date<=range.end);
+  if(typeFilter.value!=='all') list = list.filter(t=>t.type===typeFilter.value);
+  const st = sortState.report;
+  list.sort((a,b)=>compareBy(a,b,st.key)*st.dir);
+
+  const incomeTotal = sum(list,'income'), expenseTotal = sum(list,'expense');
+  const periodLabel = periodTypeSel.options[periodTypeSel.selectedIndex].textContent;
+  const rangeLabel = `${range.start} — ${range.end}`;
+
+  const rows = list.map(t=>{
+    const names = catName(t.type,t.mainCatId,t.subCatId);
+    return `<tr>
+      <td>${t.date}</td>
+      <td>${t.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td>
+      <td>${names.main}</td>
+      <td>${names.sub}</td>
+      <td>${t.note||'—'}</td>
+      <td>${userName(t.userId)}</td>
+      <td style="text-align:right;">${fmtMoney(t.amount)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="lo"><head><meta charset="UTF-8">
+<title>ລາຍງານການເງິນ ${rangeLabel}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Noto Sans Lao',sans-serif;background:#fff;color:#232C2B;padding:32px;max-width:900px;margin:0 auto;}
+  h1{color:#20423E;font-size:1.4rem;margin:0 0 2px;}
+  .sub{color:#5B655F;font-size:.92rem;margin-bottom:20px;}
+  table{width:100%;border-collapse:collapse;margin-top:16px;}
+  th{text-align:left;font-size:.82rem;color:#5B655F;padding:8px 10px;border-bottom:2px solid #232C2B;}
+  th:last-child{text-align:right;}
+  td{padding:8px 10px;border-bottom:1px solid #DED5B8;font-size:.92rem;}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums;}
+  .stats{display:flex;border-top:1px solid #232C2B;border-bottom:1px solid #DED5B8;margin:16px 0;}
+  .stat{flex:1;padding:12px 16px;border-right:1px solid #DED5B8;}
+  .stat:last-child{border-right:none;}
+  .stat .label{font-size:.8rem;color:#5B655F;}
+  .stat .value{font-size:1.3rem;font-weight:700;}
+  @media print{ body{padding:0;} }
+</style></head>
+<body>
+  <h1>ລາຍງານການເງິນ — ${periodLabel}</h1>
+  <div class="sub">ຊ່ວງເວລາ: ${rangeLabel}</div>
+  <div class="stats">
+    <div class="stat"><div class="label">ລາຍຮັບລວມ</div><div class="value" style="color:#3C7A5B;">${fmtMoney(incomeTotal)}</div></div>
+    <div class="stat"><div class="label">ລາຍຈ່າຍລວມ</div><div class="value" style="color:#AE4A3A;">${fmtMoney(expenseTotal)}</div></div>
+    <div class="stat"><div class="label">ຍອດຄົງເຫຼືອ</div><div class="value" style="color:#20423E;">${fmtMoney(incomeTotal-expenseTotal)}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>ວັນທີ</th><th>ປະເພດ</th><th>ໝວດໝູ່ຫຼັກ</th><th>ໝວດໝູ່ຍ່ອຍ</th><th>ໝາຍເຫດ</th><th>ຜູ້ບັນທຶກ</th><th>ຈຳນວນເງິນ</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#8A9088;">ບໍ່ມີລາຍການ</td></tr>'}</tbody>
+  </table>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ລາຍງານການເງິນ-${range.start}_${range.end}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('exportHtmlBtn').onclick = exportReportHtml;
 
 /* =========================================================
    USERS
