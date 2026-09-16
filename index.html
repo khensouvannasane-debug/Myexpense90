@@ -901,7 +901,7 @@ function currentView(){
 function refreshCurrentView(){
   const view = currentView();
   if(view==='dashboard') renderDashboard();
-  if(view==='transactions') renderRecentTable();
+  if(view==='transactions'){ populateMainCatSelect(txType); renderRecentTable(); }
   if(view==='categories') renderCategories();
   if(view==='reports') renderReport();
   if(view==='users') renderUsers();
